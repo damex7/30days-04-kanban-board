@@ -1,0 +1,147 @@
+@import "tailwindcss";
+
+/*
+  Design tokens. Each one becomes a CSS variable (--color-paper) AND a
+  Tailwind utility (bg-paper, text-ink, border-line, font-mono...).
+  The look: a drafting-office blueprint. Light mode is a "whiteprint" on
+  pale vellum; dark mode is the classic deep-blue blueprint sheet.
+*/
+@theme {
+  --color-paper: #edf3f9; /* page background: vellum */
+  --color-panel: #f9fbfd; /* columns, cards, dialogs */
+  --color-panel-2: #e2ebf5; /* recessed areas: inputs, column body */
+  --color-ink: #0e2a4b; /* main text: blueprint blue */
+  --color-ink-soft: #43607f; /* secondary text (6:1 on panel) */
+  --color-line: #b7c8dc; /* decorative hairlines */
+  --color-line-strong: #6b88a8; /* input borders, outlines (3:1+) */
+  --color-grid: rgb(14 42 75 / 0.06); /* the drafting grid behind everything */
+  --color-accent: #d65a00; /* safety orange: primary actions, focus */
+  --color-on-accent: #170b02; /* text on orange */
+  --color-low: #1f7a6a;
+  --color-medium: #a86400;
+  --color-high: #c0262d;
+  --color-overdue: #c0262d;
+
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+
+  --animate-slide-up: slide-up 180ms ease-out;
+
+  @keyframes slide-up {
+    from {
+      transform: translateY(12px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+}
+
+/*
+  Dark mode: same variable names, new values. The inline script in
+  index.html (and useTheme) sets data-theme on <html>.
+*/
+:root[data-theme="dark"] {
+  --color-paper: #0b2340;
+  --color-panel: #10305a;
+  --color-panel-2: #0d2849;
+  --color-ink: #e6f1ff;
+  --color-ink-soft: #a5bfdd;
+  --color-line: #2c5283;
+  --color-line-strong: #5f8ac0;
+  --color-grid: rgb(173 206 255 / 0.07);
+  --color-accent: #ff7a1a;
+  --color-on-accent: #0b1626;
+  --color-low: #5fd4b8;
+  --color-medium: #ffc857;
+  --color-high: #ff7b7b;
+  --color-overdue: #ff7b7b;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-paper font-sans text-ink antialiased;
+    /* Drafting grid: a fine 16px grid with a heavier line every 80px. */
+    background-image:
+      linear-gradient(var(--color-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-grid) 1px, transparent 1px),
+      linear-gradient(var(--color-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
+    background-size:
+      80px 80px,
+      80px 80px,
+      16px 16px,
+      16px 16px;
+  }
+
+  /* One visible focus style for everything, keyboard only. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+
+  dialog::backdrop {
+    background: rgb(5 18 36 / 0.55);
+    backdrop-filter: blur(2px);
+  }
+}
+
+/*
+  Corner tick marks, like the registration marks on a technical drawing.
+  Two pseudo-elements draw L-shaped corners top-left and bottom-right.
+*/
+@utility ticks {
+  position: relative;
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-color: var(--color-accent);
+    pointer-events: none;
+  }
+  &::before {
+    top: -1px;
+    left: -1px;
+    border-top: 2px solid;
+    border-left: 2px solid;
+  }
+  &::after {
+    bottom: -1px;
+    right: -1px;
+    border-bottom: 2px solid;
+    border-right: 2px solid;
+  }
+}
+
+/* Thin, themed scrollbars for the horizontal board strip. */
+@utility scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
