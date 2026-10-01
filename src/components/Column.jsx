@@ -1,18 +1,21 @@
 import { useId, useRef, useState } from 'react'
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { toTranslate } from '../lib/transform.js'
 import { useBoardDispatch, useBoardState } from '../state/BoardContext.jsx'
 import { boardActions } from '../state/boardReducer.js'
 import { useUI } from '../state/UIContext.jsx'
 import ColumnMenu from './ColumnMenu.jsx'
 import ConfirmDialog from './ConfirmDialog.jsx'
-import { CheckIcon, PlusIcon } from './Icons.jsx'
-import TaskCardView from './TaskCardView.jsx'
+import { CheckIcon, GripIcon, PlusIcon } from './Icons.jsx'
+import TaskCard from './TaskCard.jsx'
 
 const pad2 = (n) => String(n).padStart(2, '0')
 
-export default function Column({ columnId, index }) {
+/** visibleTaskIds: the tasks to show (search/filters may hide some). */
+export default function Column({ columnId, index, visibleTaskIds, isFiltered }) {
   const board = useBoardState()
   const dispatch = useBoardDispatch()
-  const { openNewTask, openTask } = useUI()
+  const { openNewTask } = useUI()
   const column = board.columns[columnId]
   const headingId = useId()
   const menuButtonRef = useRef(null)
@@ -20,8 +23,20 @@ export default function Column({ columnId, index }) {
   const [renaming, setRenaming] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
+  /*
+    The column is BOTH a sortable item (columns can be reordered) and the
+    drop container for its tasks. data.taskIds lets the collision detector
+    look for the closest task inside this column.
+  */
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+    id: columnId,
+    data: { type: 'column', taskIds: visibleTaskIds },
+    attributes: { roleDescription: 'draggable column' },
+  })
+
   const total = board.columnOrder.length
   const count = column.taskIds.length
+  const shown = visibleTaskIds.length
 
   function requestDelete() {
     if (count > 0) setConfirmingDelete(true)
@@ -38,10 +53,26 @@ export default function Column({ columnId, index }) {
 
   return (
     <section
+      ref={setNodeRef}
+      style={{ transform: toTranslate(transform), transition }}
       aria-labelledby={headingId}
-      className="ticks flex w-[min(86vw,300px)] shrink-0 snap-start flex-col border border-line-strong bg-panel/85 backdrop-blur-[1px]"
+      className={`ticks flex w-[min(86vw,300px)] shrink-0 snap-start flex-col border bg-panel/85 ${
+        isDragging ? 'border-2 border-dashed border-accent bg-accent/10' : 'border-line-strong'
+      }`}
     >
-      <header className="flex items-center gap-2 border-b border-line-strong px-3 py-2.5">
+      {/* opacity-0 while dragging: the dashed outline is the drop indicator */}
+      <div className={`flex flex-1 flex-col ${isDragging ? 'opacity-0' : ''}`}>
+      <header className="flex items-center gap-1.5 border-b border-line-strong py-2.5 pl-1.5 pr-3">
+        <button
+          type="button"
+          ref={setActivatorNodeRef}
+          {...attributes}
+          {...listeners}
+          aria-label={`Move column: ${column.title}`}
+          className="grid h-10 w-7 shrink-0 cursor-grab touch-none place-items-center text-ink-soft hover:bg-panel-2 hover:text-ink active:cursor-grabbing"
+        >
+          <GripIcon />
+        </button>
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-ink-soft">
             Col-{pad2(index + 1)}
@@ -60,11 +91,12 @@ export default function Column({ columnId, index }) {
           )}
         </div>
 
+        {/* "02/07" while filtering, "07" otherwise */}
         <span
           className="border border-line-strong px-1.5 font-mono text-xs font-semibold tabular-nums leading-6"
-          aria-label={`${count} ${count === 1 ? 'task' : 'tasks'}`}
+          aria-label={isFiltered ? `${shown} of ${count} tasks shown` : `${count} ${count === 1 ? 'task' : 'tasks'}`}
         >
-          {pad2(count)}
+          {isFiltered ? `${pad2(shown)}/${pad2(count)}` : pad2(count)}
         </span>
 
         <ColumnMenu
@@ -94,22 +126,30 @@ export default function Column({ columnId, index }) {
         </button>
       </div>
 
-      <ul className="flex min-h-28 flex-1 flex-col gap-2 px-2 pb-3">
-        {column.taskIds.map((taskId) => (
-          <li key={taskId}>
-            <TaskCardView task={board.tasks[taskId]} isDone={column.isDone} onOpen={() => openTask(taskId)} />
-          </li>
-        ))}
-        {count === 0 && (
-          <li className="grid flex-1 place-items-center border border-dashed border-line px-4 py-6 text-center">
-            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-soft">
-              No tasks here yet.
-              <br />
-              Add one, or drag a card in.
-            </p>
-          </li>
-        )}
-      </ul>
+      {/* The column's own sortable list. Items are the VISIBLE ids only. */}
+      <SortableContext items={visibleTaskIds} strategy={verticalListSortingStrategy}>
+        <ul className="flex min-h-28 flex-1 flex-col gap-2 px-2 pb-3">
+          {visibleTaskIds.map((taskId) => (
+            <TaskCard key={taskId} task={board.tasks[taskId]} isDone={column.isDone} />
+          ))}
+          {shown === 0 && (
+            <li className="grid flex-1 place-items-center border border-dashed border-line px-4 py-6 text-center">
+              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-soft">
+                {count === 0 ? (
+                  <>
+                    No tasks here yet.
+                    <br />
+                    Add one, or drag a card in.
+                  </>
+                ) : (
+                  `No matches · ${count} hidden`
+                )}
+              </p>
+            </li>
+          )}
+        </ul>
+      </SortableContext>
+      </div>
 
       <ConfirmDialog
         open={confirmingDelete}
@@ -123,6 +163,32 @@ export default function Column({ columnId, index }) {
         }}
       />
     </section>
+  )
+}
+
+/** The floating copy shown in the DragOverlay while a column is dragged. */
+export function ColumnPreview({ columnId }) {
+  const board = useBoardState()
+  const column = board.columns[columnId]
+  if (!column) return null
+  return (
+    <div className="w-[min(86vw,300px)] rotate-[1deg] border border-line-strong bg-panel shadow-[0_18px_40px_rgb(0_0_0/0.3)] ring-2 ring-accent">
+      <div className="flex items-center gap-2 border-b border-line-strong px-3 py-3">
+        <GripIcon className="size-4 text-ink-soft" />
+        <span className="flex-1 truncate font-display text-lg font-semibold">{column.title}</span>
+        <span className="border border-line-strong px-1.5 font-mono text-xs font-semibold leading-6">{pad2(column.taskIds.length)}</span>
+      </div>
+      <ul className="space-y-1.5 p-2">
+        {column.taskIds.slice(0, 4).map((id) => (
+          <li key={id} className="truncate border border-line px-2 py-1.5 text-sm">
+            {board.tasks[id].title}
+          </li>
+        ))}
+        {column.taskIds.length > 4 && (
+          <li className="px-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-soft">+{column.taskIds.length - 4} more</li>
+        )}
+      </ul>
+    </div>
   )
 }
 
