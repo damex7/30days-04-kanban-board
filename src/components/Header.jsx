@@ -28,7 +28,7 @@ export default function Header({ children }) {
           </div>
         </dl>
       </div>
-      {children}
+      {children && <div className="mt-4 border-t border-line-strong pt-4">{children}</div>}
     </header>
   )
 }

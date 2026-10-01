@@ -35,6 +35,7 @@ export default function TaskCardView({ task, isDone = false, onOpen, handleProps
   return (
     <article
       aria-label={task.title}
+      data-task-id={isOverlay ? undefined : task.id}
       className={`group relative border bg-panel p-3 transition-shadow ${
         overdue ? 'border-dashed border-overdue' : 'border-line-strong'
       } ${isOverlay ? 'rotate-[1.5deg] shadow-[6px_8px_0_var(--color-grid),0_18px_40px_rgb(0_0_0/0.25)] ring-2 ring-accent' : 'hover:shadow-[3px_3px_0_var(--color-line)]'}`}

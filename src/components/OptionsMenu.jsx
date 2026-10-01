@@ -7,7 +7,7 @@ import { DotsIcon } from './Icons.jsx'
   arrow-key navigation and typeahead. Plain buttons that you Tab through are
   simpler and fully accessible. Esc and clicking outside close it.
 */
-export default function ColumnMenu({ label, items, triggerRef }) {
+export default function OptionsMenu({ label, items, triggerRef, triggerContent, triggerClassName }) {
   const [open, setOpen] = useState(false)
   const wrapperRef = useRef(null)
   const ownRef = useRef(null)
@@ -50,9 +50,12 @@ export default function ColumnMenu({ label, items, triggerRef }) {
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((o) => !o)}
-        className="grid size-8 place-items-center text-ink-soft hover:bg-panel-2 hover:text-ink aria-expanded:bg-panel-2 aria-expanded:text-ink"
+        className={
+          triggerClassName ??
+          'grid size-8 place-items-center text-ink-soft hover:bg-panel-2 hover:text-ink aria-expanded:bg-panel-2 aria-expanded:text-ink'
+        }
       >
-        <DotsIcon />
+        {triggerContent ?? <DotsIcon />}
       </button>
 
       {open && (

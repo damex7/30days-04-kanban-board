@@ -4,7 +4,7 @@ import { toTranslate } from '../lib/transform.js'
 import { useBoardDispatch, useBoardState } from '../state/BoardContext.jsx'
 import { boardActions } from '../state/boardReducer.js'
 import { useUI } from '../state/UIContext.jsx'
-import ColumnMenu from './ColumnMenu.jsx'
+import OptionsMenu from './OptionsMenu.jsx'
 import ConfirmDialog from './ConfirmDialog.jsx'
 import { CheckIcon, GripIcon, PlusIcon } from './Icons.jsx'
 import TaskCard from './TaskCard.jsx'
@@ -99,7 +99,7 @@ export default function Column({ columnId, index, visibleTaskIds, isFiltered }) 
           {isFiltered ? `${pad2(shown)}/${pad2(count)}` : pad2(count)}
         </span>
 
-        <ColumnMenu
+        <OptionsMenu
           triggerRef={menuButtonRef}
           label={`Options for column ${column.title}`}
           items={[
